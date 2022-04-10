@@ -1,0 +1,168 @@
+// AC Frequency By Solarduino
+
+// Note Summary
+// Note :  Safety is very important when dealing with electricity. We take no responsibilities while you do it at your own risk.
+// Note :  This AC Frequency Code is useing AC current module or AC Voltage Module for reference value to determine the frequency value.
+// Note :  The value shown in Serial Monitor is refreshed every second (for 50Hz).
+// Note :  The frequency is measured by counting time and average it for every 50 samples taken (1 sample is 1 cycle).
+// Note :  No calibration is needed.
+// Note :  The unit provides reasonable accuracy and may not be comparable with other expensive branded and commercial product.
+// Note :  All credit shall be given to Solarduino.
+
+/*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/////////////*/
+
+
+/* 0- General */
+
+int decimalPrecision = 2;                 // decimal places for all values shown in LED Display & Serial Monitor
+
+
+/* 1- frequency measurement */
+
+unsigned long startMicros;                /* start counting time for frequency (in micro seconds)*/
+unsigned long currentMicros;              /* current counting time for frequency (in micro seconds) */
+int expectedFrequency = 50;               // Key in your grid frequency. No issue if key wrong. This is to collect number of samples.
+int inputpin = A2;              // The signal for frequency sensed. Can be by AC Current sensor or can be by AC Votlage sensor.
+float frequencySampleCount = 0;           /* count the number of sample, 1 sample equivalent to 1 cycle */
+float frequency = 0 ;                     /* shows the value of frequency*/
+float a;                                  /* use for calculation purpose*/
+float switch01 = 0;                       /* use for switching function */
+float vAnalogRead = 0;                    /* read analog value, can be use for AC current sensor or AC voltage sensor*/
+
+/* 1- AC Voltage Measurement */
+
+float voltageSampleRead  = 0;               /* to read the value of a sample in analog including voltageOffset1 */
+float voltageLastSample  = 0;               /* to count time for each sample. Technically 1 milli second 1 sample is taken */
+float voltageSampleSum   = 0;               /* accumulation of sample readings */
+float voltageSampleCount = 0;               /* to count number of sample. */
+float voltageMean ;                         /* to calculate the average value from all samples, in analog values*/
+float RMSVoltageMean ;                      /* square roof of voltageMean without offset value, in analog value*/
+float adjustRMSVoltageMean;
+float FinalRMSVoltage;                      /* final voltage value with offset value*/
+
+
+/* 1.1- AC Voltage Offset */
+
+float voltageOffset1 = 0.00 ;         // to Offset deviation and accuracy. Offset any fake current when no current operates.
+// Offset will automatically callibrate when SELECT Button on the LCD Display Shield is pressed.
+// If you do not have LCD Display Shield, look into serial monitor to add or minus the value manually and key in here.
+// 26 means add 26 to all analog value measured.
+float voltageOffset2 = 0.00;          // too offset value due to calculation error from squared and square root
+
+
+#define pinSenzor A0
+float odpor = 988.0;
+float napetiSpickove;
+float proudSpickovyPresRezistor;
+float proudRMSPresRezistor;
+float proudRMSmereny;
+float odberWatt;
+int zmereno = 0;
+
+
+void setup()
+{
+
+  /* 0- General */
+
+  Serial.begin(9600);                         /* to display readings in Serial Monitor at 9600 baud rates */
+
+
+  /* 1- frequency measurement */
+
+  startMicros = micros();                     /* Start counting time for frequency measurement */
+
+  pinMode(pinSenzor, INPUT);
+
+
+}
+
+void loop()
+{
+  /* 1- AC Voltage Measurement */
+  if (micros() >= voltageLastSample + 1000 )                                                                     /* every 0.2 milli second taking 1 reading */
+  {
+    voltageSampleRead = (analogRead(inputpin) - 512) + voltageOffset1;                           /* read the sample value including offset value*/
+    voltageSampleSum = voltageSampleSum + sq(voltageSampleRead) ;                                             /* accumulate total analog values for each sample readings*/
+
+    voltageSampleCount = voltageSampleCount + 1;                                                              /* to move on to the next following count */
+    voltageLastSample = micros() ;                                                                            /* to reset the time again so that next cycle can start again*/
+  }
+
+  /* 1- frequency measurement */
+
+  currentMicros = micros();                                           /* record current time for frequency calculation*/
+  vAnalogRead = analogRead(inputpin) - 512;                 /* read the analog value from sensor */
+
+  if (vAnalogRead >= 0 && switch01 == 0)                              /* if analog value higher than 0, initiate the code*/
+  {
+    frequencySampleCount = frequencySampleCount + 1 ;             /* count the sample*/
+    switch01 = 1;                                                 /* straight away go to standby mode by switching to other function*/
+  }
+
+  if (vAnalogRead < 0 && switch01 == 1)                               /* if analog value lower than 0, initiate the code*/
+  {
+    switch01 = 0;                                                 /* do nothing but to switch back the function for the previous function to be active again*/
+    /* this purpose is to make sure whole wave form is complete and counting quantity of sample with no mistake */
+  }
+
+  if (frequencySampleCount == 50)                      /* if couting sample reach at 50 (default) which is eqivalent to 1 second*/
+  {
+    a = currentMicros - startMicros ;                             /* use for calculation purpose*/
+    frequency = 1 / ((a / 1000000) / frequencySampleCount);       /* formula for frequency value*/
+    Serial.print(frequency, decimalPrecision);
+    Serial.println(" Hz");
+    voltageMean = voltageSampleSum / voltageSampleCount;                                                      /* calculate average value of all sample readings taken*/
+    RMSVoltageMean = (sqrt(voltageMean)) * 1.5;                                                               // The value X 1.5 means the ratio towards the module amplification.
+    adjustRMSVoltageMean = RMSVoltageMean + voltageOffset2;                                                   /* square root of the average value including offset value */                                                                                                                                                       /* square root of the average value*/
+    FinalRMSVoltage = RMSVoltageMean + voltageOffset2;                                                        /* this is the final RMS voltage*/
+    if (FinalRMSVoltage <= 2.5)                                                                               /* to eliminate any possible ghost value*/
+    {
+      FinalRMSVoltage = 0;
+    }
+    Serial.print("Efektivní napětí: ");
+    Serial.print(FinalRMSVoltage, decimalPrecision);
+    Serial.println(" V ");
+    /*
+        napetiSpickove = namerNapetiSpickaSpicka();
+        proudSpickovyPresRezistor = (napetiSpickove / odpor) * 1000.0;
+        proudRMSPresRezistor = proudSpickovyPresRezistor * 0.707;
+        proudRMSmereny = proudRMSPresRezistor * 2000;
+        odberWatt = 230.0 * (proudRMSmereny / 1000.0);
+        Serial.print("Napeti spicka-spicka: ");
+        Serial.println(napetiSpickove, 3);
+        Serial.print("Proud tekouci rezistorem (spicka-spicka): ");
+        Serial.print(proudSpickovyPresRezistor, 3);
+        Serial.println(" mA.");
+        Serial.print("Proud tekouci rezistorem (RMS): ");
+        Serial.print(proudRMSPresRezistor, 3);
+        Serial.println(" mA RMS.");
+        Serial.print("Proud mereny: ");
+        Serial.print(proudRMSmereny, 3);
+        Serial.println(" mA RMS.");
+        Serial.print("Odber energie: ");
+        Serial.print(odberWatt, 3);
+        Serial.println(" W.");
+        Serial.println();
+    */
+    voltageSampleSum = 0;                                                                                     /* to reset accumulate sample values for the next cycle */
+    voltageSampleCount = 0;                                                                                   /* to reset number of sample for the next cycle */
+    startMicros = currentMicros;                                  /* reset the counting time for the next cycle */
+    frequencySampleCount = 0;                                     /* reset the total sample taken become 0 for next cycle */
+  }
+}
+
+float namerNapetiSpickaSpicka() {
+  float vysledek;
+  int merenaHodnota;
+  int maximum = 0;
+  unsigned long zacatekMereni = millis();
+  while ((millis() - zacatekMereni) < 1000) {
+    merenaHodnota = analogRead(pinSenzor);
+    if (merenaHodnota > maximum) {
+      maximum = merenaHodnota;
+    }
+  }
+  vysledek = (maximum * 5.0) / 1024.0;
+  return vysledek;
+}
