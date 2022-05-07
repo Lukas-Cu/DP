@@ -101,6 +101,7 @@ typedef struct
   //Active power L1 value.
   uint16_t activePowerL1;
   uint16_t frekvence;
+  uint16_t efektivniproud;
 } gxLoadProfileData;
 
 //Define profile generic buffer row data for event log.
@@ -140,6 +141,7 @@ static gxAssociationLogicalName associationHigh;
 static gxAssociationLogicalName associationHighGMac;
 static gxRegister activePowerL1;
 static gxRegister frekvence;
+static gxRegister efektivniproud;
 static gxScriptTable scriptTableGlobalMeterReset;
 static gxScriptTable scriptTableDisconnectControl;
 static gxScriptTable scriptTableActivatetestMode;
@@ -224,7 +226,7 @@ unsigned long printCasovac = millis();
 //Append new COSEM object to the end so serialization will work correctly.
 static gxObject* ALL_OBJECTS[] = { BASE(associationNone), BASE(associationLow), BASE(associationHigh), BASE(associationHighGMac), BASE(securitySetupLow), BASE(securitySetupHigh),
                                    BASE(ldn), BASE(eeprom), BASE(testMode), BASE(eventCode),
-                                   BASE(hodiny), BASE(activePowerL1), BASE(frekvence), BASE(pushSetup), BASE(scriptTableGlobalMeterReset), BASE(scriptTableDisconnectControl),
+                                   BASE(hodiny), BASE(activePowerL1), BASE(frekvence), BASE(efektivniproud), BASE(pushSetup), BASE(scriptTableGlobalMeterReset), BASE(scriptTableDisconnectControl),
                                    BASE(scriptTableActivatetestMode), BASE(scriptTableActivateNormalMode), BASE(profileGeneric), BASE(eventLog), BASE(hdlc),
                                    BASE(disconnectControl), BASE(actionScheduleDisconnectOpen), BASE(actionScheduleDisconnectClose),
                                    BASE(unixTime), BASE(invocationCounter),
@@ -261,6 +263,7 @@ static uint32_t executeTime = 0;
 
 static uint16_t activePowerL1Value = 0;
 static uint16_t frekvenceValue = 0;
+static uint16_t efektivniproudValue = 0;
 
 typedef enum
 {
@@ -834,20 +837,28 @@ int addRegisterObject()
   int ret;
   const unsigned char ln[6] = { 1, 1, 21, 25, 0, 255 };
   const unsigned char fr[6] = { 1, 1, 14, 25, 0, 255 };
+  const unsigned char rc[6] = { 1, 1, 31, 25, 0, 255 };
   if ((ret = INIT_OBJECT(activePowerL1, DLMS_OBJECT_TYPE_REGISTER, ln)) == 0)
   {
     activePowerL1Value = 0;
     GX_UINT16_BYREF(activePowerL1.value, activePowerL1Value);
     //10 ^ 3 =  1000
-    activePowerL1.scaler = 3;
+    activePowerL1.scaler = 1;
     activePowerL1.unit = 30;
   }
   if ((ret = INIT_OBJECT(frekvence, DLMS_OBJECT_TYPE_REGISTER, fr)) == 0)
   {
     frekvenceValue = 0;
     GX_UINT16_BYREF(frekvence.value, frekvenceValue);
-    frekvence.scaler = 3;
-    frekvence.unit = 30;
+    //frekvence.scaler = 0;
+    frekvence.unit = 44;
+  }
+  if ((ret = INIT_OBJECT(efektivniproud, DLMS_OBJECT_TYPE_REGISTER, rc)) == 0)
+  {
+    efektivniproudValue = 0;
+    GX_UINT16_BYREF(efektivniproud.value, efektivniproudValue);
+    //efektivniproud.scaler = 0;
+    efektivniproud.unit = 33;
   }
   return ret;
 }
@@ -979,6 +990,10 @@ int addLoadProfileProfileGeneric()
     CAPTURE_OBJECT[1].dataIndex = 0;
     // Frekvence
     CAPTURE_OBJECT[2].target = BASE(frekvence);
+    CAPTURE_OBJECT[2].attributeIndex = 2;
+    CAPTURE_OBJECT[2].dataIndex = 0;
+    // RMS proud
+    CAPTURE_OBJECT[2].target = BASE(efektivniproud);
     CAPTURE_OBJECT[2].attributeIndex = 2;
     CAPTURE_OBJECT[2].dataIndex = 0;
 
@@ -1358,14 +1373,17 @@ void loop() {
   {
     if(FinalRMSVoltage>=10)
     {
-    activePowerL1Value=FinalRMSVoltage;
-    frekvenceValue=frequency;
+    activePowerL1Value=odberWatt/1000;
+    frekvenceValue=frequency/100;
+    efektivniproudValue=proudRMSmereny/1000000;
     printCasovac = millis();
+    
     }
     else
     {
     activePowerL1Value=0;
     frekvenceValue=0;
+    efektivniproudValue=0;
     printCasovac = millis();
     }
   }
@@ -1614,7 +1632,8 @@ int readProfileGeneric(
         if ((ret = cosem_setStructure(e->value.byteArr, 2)) != 0 ||
             (ret = cosem_setDateTimeAsOctetString(e->value.byteArr, &tm)) != 0 ||
             (ret = cosem_setUInt16(e->value.byteArr, lp.activePowerL1)) != 0 ||
-            (ret = cosem_setUInt16(e->value.byteArr, lp.frekvence)) != 0)
+            (ret = cosem_setUInt16(e->value.byteArr, lp.frekvence)) != 0 ||
+            (ret = cosem_setUInt16(e->value.byteArr, lp.efektivniproud)) != 0)
         {
           //Error is handled later.
         }
@@ -1890,6 +1909,12 @@ void svr_preAction(
     {
       //Set default value for active power.
       frekvenceValue = 0;
+      e->handled = 1;
+    }
+    else if (e->target == BASE(efektivniproud))
+    {
+      //Set default value for active power.
+      efektivniproudValue = 0;
       e->handled = 1;
     }
     else if (e->target == BASE(pushSetup) && e->index == 1)
