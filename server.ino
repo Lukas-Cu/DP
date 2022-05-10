@@ -397,7 +397,7 @@ int loadSettings()
 {
   int ret = 0;
   serializerSettings.position = 0;
-  ret = Server.loadObjects(&serializerSettings, ALL_OBJECTS, sizeof(ALL_OBJECTS) / sizeof(ALL_OBJECTS[0]));
+  //ret = Server.loadObjects(&serializerSettings, ALL_OBJECTS, sizeof(ALL_OBJECTS) / sizeof(ALL_OBJECTS[0]));
   if (ret != 0)
   {
     GXTRACE_INT(GET_STR_FROM_EEPROM("Failed to load settings from EEPROM."), serializerSettings.position);
@@ -843,7 +843,7 @@ int addRegisterObject()
     activePowerL1Value = 0;
     GX_UINT16_BYREF(activePowerL1.value, activePowerL1Value);
     //10 ^ 3 =  1000
-    activePowerL1.scaler = 1;
+    activePowerL1.scaler = 0;
     activePowerL1.unit = 30;
   }
   if ((ret = INIT_OBJECT(frekvence, DLMS_OBJECT_TYPE_REGISTER, fr)) == 0)
