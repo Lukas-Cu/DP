@@ -1371,11 +1371,11 @@ void loop() {
   /* Odeslani vysledku */
   if (millis() >= printCasovac + 1000 )
   {
-    if(FinalRMSVoltage>=10)
+    if(proudRMSmereny>=10)
     {
-    activePowerL1Value=odberWatt/1000;
-    frekvenceValue=frequency/100;
-    efektivniproudValue=proudRMSmereny/1000000;
+    activePowerL1Value=odberWatt;
+    frekvenceValue=frequency;
+    efektivniproudValue=proudRMSmereny;
     printCasovac = millis();
     
     }
