@@ -1,0 +1,27 @@
+#!/bin/bash
+DB_USER='elektromer';
+DB_PASSWD='raspberry';
+
+DB_NAME='elektromer';
+TABLE='log';
+#DLMS_READ_PROUD='2';
+
+python3 main.py -S /dev/ttyACM1 2>/dev/null > DLMSZapisovac_last_data
+
+DLMS_READ_FREQ=$(cat DLMSZapisovac_last_data | awk '/Index: 1 Value: 1.1.14.25.0/{getline;getline;print}' | awk '{gsub(/.*Value: |*/,"");print}')
+DLMS_READ_PROUD=$(cat DLMSZapisovac_last_data | awk '/Index: 1 Value: 1.1.14.25.0/{getline;getline;print}' | awk '{gsub(/.*Value: |*/,"");print}')
+DLMS_READ_NAPETI=$(cat DLMSZapisovac_last_data | awk '/Index: 1 Value: 1.1.14.25.0/{getline;getline;print}' | awk '{gsub(/.*Value: |*/,"");print}')
+DLMS_READ_SPOTREBA_AKTUALNI=$(cat DLMSZapisovac_last_data | awk '/Index: 1 Value: 1.1.14.25.0/{getline;getline;print}' | awk '{gsub(/.*Value: |*/,"");print}')
+DLMS_READ_SPOTREBA_NT=$(cat DLMSZapisovac_last_data | awk '/Index: 1 Value: 1.1.14.25.0/{getline;getline;print}' | awk '{gsub(/.*Value: |*/,"");print}')
+DLMS_READ_SPOTREBA_VT=$(cat DLMSZapisovac_last_data | awk '/Index: 1 Value: 1.1.14.25.0/{getline;getline;print}' | awk '{gsub(/.*Value: |*/,"");print}')
+
+if [[ -n "$DLMS_READ_PROUD" && "$DLMS_READ_PROUD" != "" ]]; then
+   mysql --user=$DB_USER --password=$DB_PASSWD $DB_NAME -e "INSERT INTO $TABLE (\`TYP\`, \`HODNOTA\`) VALUES ('Frekvence', '$DLMS_READ_FREQ');";
+   mysql --user=$DB_USER --password=$DB_PASSWD $DB_NAME -e "INSERT INTO $TABLE (\`TYP\`, \`HODNOTA\`) VALUES ('Proud', '$DLMS_READ_PROUD');";
+   mysql --user=$DB_USER --password=$DB_PASSWD $DB_NAME -e "INSERT INTO $TABLE (\`TYP\`, \`HODNOTA\`) VALUES ('Napeti', '$DLMS_READ_NAPETI');";
+   mysql --user=$DB_USER --password=$DB_PASSWD $DB_NAME -e "INSERT INTO $TABLE (\`TYP\`, \`HODNOTA\`) VALUES ('Aktualni spotreba', '$DLMS_READ_SPOTREBA_AKTUALNI');";
+   mysql --user=$DB_USER --password=$DB_PASSWD $DB_NAME -e "INSERT INTO $TABLE (\`TYP\`, \`HODNOTA\`) VALUES ('Spotreba nizky tarif', '$DLMS_READ_SPOTREBA_NT');";
+   mysql --user=$DB_USER --password=$DB_PASSWD $DB_NAME -e "INSERT INTO $TABLE (\`TYP\`, \`HODNOTA\`) VALUES ('Spotreba vysoky tarif', '$DLMS_READ_SPOTREBA_VT');";
+else
+   echo "Arduino odpojeno"
+fi
