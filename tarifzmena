@@ -1,0 +1,23 @@
+// nastavení čísla propojovacího pinu
+#define pintarif A5
+
+void setup() {
+  // zahájení komunikace po sériové lince
+  Serial.begin(9600);
+  // nastavení pinu se senzorem jako vstup
+  pinMode(pintarif, INPUT);
+}
+
+void loop() {
+
+    if(((analogRead(pintarif)* 5.0) / 1024.0)>4)
+    {
+      Serial.println("nizky tarif");
+    }
+    else
+    {
+      Serial.println("vysoky tarif");
+    }
+    delay(1000);
+
+}
