@@ -123,11 +123,11 @@ void loop()
   proudSpickovyPresRezistor = (napetiSpickove / odpor) * 1000.0;
   proudRMSPresRezistor = proudSpickovyPresRezistor * 0.707;
   proudRMSmereny = proudRMSPresRezistor * 2000;
-  odberWatt = 230.0 * (proudRMSmereny / 1000.0);
+  odberWatt = FinalRMSVoltage * (proudRMSmereny / 1000.0);
   /* Odeslani vysledku */
   if (millis() >= printCasovac + 1000 )
   {
-    Serial.print(frequency, decimalPrecision);
+    Serial.print(frequency, 0);
     Serial.print(":");
     Serial.print(FinalRMSVoltage, decimalPrecision);
     Serial.print(":");
