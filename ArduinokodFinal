@@ -149,6 +149,8 @@ void loop()
     {
       Serial.println("vysoky");
     }
+    Serial.print("Cas: ");
+    Serial.println(millis());
     
     printCasovac = millis();
   }
