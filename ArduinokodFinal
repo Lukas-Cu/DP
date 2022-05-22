@@ -127,24 +127,23 @@ void loop()
   /* Odeslani vysledku */
   if (millis() >= printCasovac + 1000 )
   {
-    Serial.print("Frekvence:");
     Serial.print(frequency, decimalPrecision);
-    Serial.print("Napeti:");
+    Serial.print(":");
     Serial.print(FinalRMSVoltage, decimalPrecision);
-    Serial.print("Proud:");
+    Serial.print(":");
     Serial.print(proudRMSmereny, decimalPrecision);
-    Serial.print("Odber energie:");
+    Serial.print(":");
     Serial.print(odberWatt, decimalPrecision);
-    Serial.print("Tarif:");
+    Serial.print(":");
     if(((analogRead(pintarif)* 5.0) / 1024.0)>3)
     {
-      Serial.println("nizky");
+      Serial.print("nizky");
     }
     else
     {
-      Serial.println("vysoky");
+      Serial.print("vysoky");
     }
-    Serial.print("Cas:");
+    Serial.print(":");
     Serial.println(millis()-printCasovac);
     
     printCasovac = millis();
