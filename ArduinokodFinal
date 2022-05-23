@@ -137,11 +137,11 @@ void loop()
     Serial.print(":");
     if(((analogRead(pintarif)* 5.0) / 1024.0)>4)
     {
-      Serial.print("nizky");
+      Serial.print("0");
     }
     else
     {
-      Serial.print("vysoky");
+      Serial.print("1");
     }
     Serial.print(":");
     Serial.println(millis()-printCasovac);
