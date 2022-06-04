@@ -3,7 +3,7 @@
 int decimalPrecision = 4;                 // decimal places for all values shown in LED Display & Serial Monitor
 
 /* Mereni spotreby tarify */
-#define pintarif A5
+#define pintarif A3
 float spotrebaNT = 0;
 float spotrebaVT = 0;
 
@@ -135,7 +135,7 @@ void loop()
     Serial.print(":");
     Serial.print(odberWatt, decimalPrecision);
     Serial.print(":");
-    if(((analogRead(pintarif)* 5.0) / 1024.0)>4)
+    if(((analogRead(pintarif)* 5.0) / 1024.0)>3)
     {
       Serial.print("0");
     }
